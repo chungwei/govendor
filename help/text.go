@@ -44,7 +44,7 @@ Status Types
 	+vendor   (v) packages in the vendor folder
 	+std      (s) packages in the standard library
 
-	+excluded (x) external packages explicitely excluded from vendoring
+	+excluded (x) external packages explicitly excluded from vendoring
 	+unused   (u) packages in the vendor folder, but unused
 	+missing  (m) referenced packages but not found
 
@@ -81,9 +81,11 @@ var helpList = `govendor list [options]  ( +status or import-path-filter )
 	List all dependencies and packages in folder tree.
 	Options:
 		-v           verbose listing, show dependencies of each package
+		-p           show file path to package instead of import path
 		-no-status   do not prefix status to list, package names only
 Examples:
 	$ govendor list -no-status +local
+	$ govendor list -p -no-status +local
 	$ govendor list +vend,prog +local,program
 	$ govendor list +local,^prog
 `
@@ -134,6 +136,7 @@ var helpSync = `govendor sync
 	Options:
 		-n           dry run, print out action only
 		-insecure    allow downloading over insecure connection
+		-v           verbose output
 `
 
 var helpStatus = `govendor status

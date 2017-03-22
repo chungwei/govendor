@@ -356,17 +356,22 @@ func (ctx *Context) Sync(dryrun bool) (err error) {
 				continue
 			}
 		} else {
+			// Use cache.
 			vcsCmd = updateVcsCmd(sysVcsCmd)
-			err = vcsCmd.Download(repoRootDir)
-			if err != nil {
-				rem = append(rem, remoteFailure{Msg: "failed to download repo", Path: vp.Path, Err: err})
-				continue
-			}
 
 			err = vcsCmd.RevisionSync(repoRootDir, vp.Revision)
+			// If revision was not found in the cache, download and try again.
 			if err != nil {
-				rem = append(rem, remoteFailure{Msg: "failed to sync repo to " + vp.Revision, Path: vp.Path, Err: err})
-				continue
+				err = vcsCmd.Download(repoRootDir)
+				if err != nil {
+					rem = append(rem, remoteFailure{Msg: "failed to download repo", Path: vp.Path, Err: err})
+					continue
+				}
+				err = vcsCmd.RevisionSync(repoRootDir, vp.Revision)
+				if err != nil {
+					rem = append(rem, remoteFailure{Msg: "failed to sync repo to " + vp.Revision, Path: vp.Path, Err: err})
+					continue
+				}
 			}
 		}
 		dest := filepath.Join(ctx.RootDir, ctx.VendorFolder, pathos.SlashToFilepath(vp.Path))
@@ -383,7 +388,10 @@ func (ctx *Context) Sync(dryrun bool) (err error) {
 		root, _ := pathos.TrimCommonSuffix(src, vp.Path)
 
 		// Need to ensure we copy files from "b.Root/<import-path>" for the following command.
-		ctx.CopyPackage(dest, src, root, vp.Path, ignoreFiles, vp.Tree, h, nil)
+		err = ctx.CopyPackage(dest, src, root, vp.Path, ignoreFiles, vp.Tree, h, nil)
+		if err != nil {
+			fmt.Fprintf(ctx, "failed to copy package from %q to %q: %+v", src, dest, err)
+		}
 		checksum := h.Sum(nil)
 		h.Reset()
 		vp.ChecksumSHA1 = base64.StdEncoding.EncodeToString(checksum)
